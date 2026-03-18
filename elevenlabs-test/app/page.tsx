@@ -1,14 +1,33 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import VoiceCall from "./components/VoiceCall";
+import PhoneMonitor from "./components/PhoneMonitor";
 import Transcript, { TranscriptMessage } from "./components/Transcript";
 import ToolCards, { ToolCallEvent } from "./components/ToolCards";
 
+type Mode = "idle" | "web-call" | "phone-monitor";
+
 export default function Home() {
-  const [inCall, setInCall] = useState(false);
+  const [mode, setMode] = useState<Mode>("idle");
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCallEvent[]>([]);
+  const [activeCall, setActiveCall] = useState<{ room: string; participants: number } | null>(null);
+
+  // Poll for active phone calls
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/livekit-rooms");
+        const data = await res.json();
+        const rooms = (data.rooms || []).filter((r: { name: string }) => r.name.startsWith("huisarts-_"));
+        setActiveCall(rooms.length > 0 ? { room: rooms[0].name, participants: rooms[0].numParticipants } : null);
+      } catch { setActiveCall(null); }
+    };
+    poll();
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleTranscript = useCallback((msg: TranscriptMessage) => {
     setMessages((prev) => [...prev, msg]);
@@ -18,15 +37,21 @@ export default function Home() {
     setToolCalls((prev) => [...prev, tc]);
   }, []);
 
-  const handleStart = () => {
+  const handleEnd = useCallback(() => {
+    setMode("idle");
+  }, []);
+
+  const handleStartWebCall = () => {
     setMessages([]);
     setToolCalls([]);
-    setInCall(true);
+    setMode("web-call");
   };
 
-  const handleEnd = useCallback(() => {
-    setInCall(false);
-  }, []);
+  const handleStartPhoneMonitor = () => {
+    setMessages([]);
+    setToolCalls([]);
+    setMode("phone-monitor");
+  };
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -47,7 +72,7 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">
-        {!inCall ? (
+        {mode === "idle" ? (
           <div className="flex flex-col items-center gap-8 pt-12">
             <div className="text-center max-w-lg">
               <h2 className="text-3xl font-bold text-[var(--foreground)] mb-3">
@@ -74,7 +99,7 @@ export default function Home() {
                   Spreek direct met Lisa via uw microfoon. Geen telefoon nodig.
                 </p>
                 <button
-                  onClick={handleStart}
+                  onClick={handleStartWebCall}
                   className="w-full rounded-xl bg-[var(--primary)] px-6 py-3 text-white font-medium hover:bg-[var(--primary-dark)] transition-colors"
                 >
                   Bel nu
@@ -93,9 +118,27 @@ export default function Home() {
                 </div>
                 <p className="text-[var(--text-muted)] text-sm mb-2">Bel ons op:</p>
                 <p className="text-2xl font-bold text-[var(--foreground)] mb-4">058-203 8458</p>
-                <p className="text-xs text-[var(--text-muted)]">
-                  Voys SIP — direct verbonden met onze AI-assistent
-                </p>
+                {activeCall && (
+                  <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-[var(--success-light)] border border-[var(--success)]">
+                    <div className="relative">
+                      <div className="h-2.5 w-2.5 rounded-full bg-[var(--success)]" />
+                      <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-[var(--success)] animate-pulse-ring" />
+                    </div>
+                    <span className="text-xs font-medium text-[var(--success)]">
+                      Actief gesprek ({activeCall.participants} deelnemers)
+                    </span>
+                  </div>
+                )}
+                <button
+                  onClick={handleStartPhoneMonitor}
+                  className={`w-full rounded-xl border-2 px-6 py-3 font-medium transition-colors ${
+                    activeCall
+                      ? "border-[var(--success)] text-[var(--success)] hover:bg-[var(--success-light)]"
+                      : "border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary-light)]"
+                  }`}
+                >
+                  {activeCall ? "Meekijken (live)" : "Meekijken"}
+                </button>
               </div>
             </div>
 
@@ -116,7 +159,12 @@ export default function Home() {
         ) : (
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 flex flex-col gap-6">
-              <VoiceCall onTranscript={handleTranscript} onToolCall={handleToolCall} onEnd={handleEnd} />
+              {mode === "web-call" && (
+                <VoiceCall onTranscript={handleTranscript} onToolCall={handleToolCall} onEnd={handleEnd} />
+              )}
+              {mode === "phone-monitor" && (
+                <PhoneMonitor onTranscript={handleTranscript} onToolCall={handleToolCall} onEnd={handleEnd} />
+              )}
               <Transcript messages={messages} />
             </div>
             <div className="lg:col-span-1">
