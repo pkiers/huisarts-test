@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useConversation } from "@elevenlabs/react";
 import { createClientTools } from "../lib/tools";
 import type { TranscriptMessage } from "./Transcript";
@@ -49,6 +49,42 @@ export default function VoiceCall({ onTranscript, onToolCall, onEnd }: VoiceCall
   const status = conversation.status === "connected" ? "connected"
     : conversation.status === "connecting" ? "connecting"
     : "disconnected";
+
+  // Smooth audio visualizer using real frequency data
+  const NUM_BARS = 24;
+  const [bars, setBars] = useState<number[]>(new Array(NUM_BARS).fill(0));
+  const rafRef = useRef<number>(0);
+
+  const updateBars = useCallback(() => {
+    if (status !== "connected") {
+      setBars(new Array(NUM_BARS).fill(0));
+      return;
+    }
+
+    const output = conversation.getOutputByteFrequencyData();
+    const input = conversation.getInputByteFrequencyData();
+    const data = output && output.length > 0 ? output : input;
+
+    if (data && data.length > 0) {
+      const step = Math.max(1, Math.floor(data.length / NUM_BARS));
+      const newBars = Array.from({ length: NUM_BARS }, (_, i) => {
+        const idx = Math.min(i * step, data.length - 1);
+        return data[idx] / 255; // normalize 0-1
+      });
+      setBars(newBars);
+    } else {
+      setBars((prev) => prev.map((v) => v * 0.85)); // decay
+    }
+
+    rafRef.current = requestAnimationFrame(updateBars);
+  }, [status, conversation]);
+
+  useEffect(() => {
+    if (status === "connected") {
+      rafRef.current = requestAnimationFrame(updateBars);
+    }
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [status, updateBars]);
 
   useEffect(() => {
     const startCall = async () => {
@@ -99,19 +135,18 @@ export default function VoiceCall({ onTranscript, onToolCall, onEnd }: VoiceCall
 
       {/* Audio visualizer */}
       <div className="flex items-center justify-center h-32 mb-6">
-        <div className="flex items-end gap-1 h-16">
-          {Array.from({ length: 20 }).map((_, i) => (
+        <div className="flex items-end justify-center gap-[3px] h-20">
+          {bars.map((v, i) => (
             <div
               key={i}
-              className={`w-1.5 rounded-full transition-all duration-150 ${
+              className={`w-[5px] rounded-full ${
                 status === "connected"
-                  ? conversation.isSpeaking ? "bg-[var(--primary)]" : "bg-[var(--primary-light)]"
+                  ? conversation.isSpeaking ? "bg-[var(--primary)]" : "bg-[var(--primary)] opacity-50"
                   : "bg-gray-200"
               }`}
               style={{
-                height: status === "connected" && conversation.isSpeaking
-                  ? `${Math.random() * 100}%` : "20%",
-                transition: "height 0.15s ease",
+                height: `${Math.max(4, v * 100)}%`,
+                transition: "height 50ms ease-out",
               }}
             />
           ))}
