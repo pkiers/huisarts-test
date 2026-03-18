@@ -56,6 +56,62 @@ function BookingCard({ tc }: { tc: ToolCallEvent }) {
 }
 
 function PatientCard({ tc }: { tc: ToolCallEvent }) {
+  // Support both old format (direct fields) and new format (kandidaten array)
+  const kandidaten = tc.result.kandidaten as Array<Record<string, unknown>> | undefined;
+  const zoekterm = tc.result.zoekterm as Record<string, unknown> | undefined;
+
+  // New format: kandidaten array
+  if (kandidaten !== undefined) {
+    if (kandidaten.length === 0) {
+      return (
+        <div className="rounded-xl border border-[var(--warning)] bg-[var(--warning-light)] p-4 animate-slide-up shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{"\u26A0\uFE0F"}</span>
+            <div>
+              <p className="text-sm font-medium">Pati&euml;nt niet gevonden</p>
+              {zoekterm && (
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  Gezocht: {String(zoekterm.naam || "")} {zoekterm.geboortedatum ? `(${zoekterm.geboortedatum})` : ""}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Show as "zoeken" — LLM decides if it's a match
+    const patient = kandidaten[0];
+    const allergies = (patient.allergies as string[]) || [];
+    const medications = (patient.medications as string[]) || [];
+    return (
+      <div className="rounded-xl border border-[var(--primary)] bg-[var(--primary-light)] p-4 animate-slide-up shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-white text-sm font-bold">
+            {String(patient.name || "?").charAt(0)}
+          </span>
+          <h4 className="font-semibold text-sm">{String(patient.name)}</h4>
+        </div>
+        {zoekterm && (
+          <p className="text-[10px] text-[var(--text-muted)] mb-2">
+            Gezocht: {String(zoekterm.naam || "")} ({String(zoekterm.geboortedatum || "")})
+          </p>
+        )}
+        <div className="space-y-1 text-sm">
+          <p><span className="text-[var(--text-muted)]">Geboortedatum:</span> {String(patient.dob)}</p>
+          <p><span className="text-[var(--text-muted)]">Huisarts:</span> {String(patient.huisarts)}</p>
+          {allergies.length > 0 && (
+            <p><span className="text-[var(--text-muted)]">Allergie&euml;n:</span> <span className="text-[var(--danger)]">{allergies.join(", ")}</span></p>
+          )}
+          {medications.length > 0 && (
+            <p><span className="text-[var(--text-muted)]">Medicatie:</span> {medications.join(", ")}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Old format fallback (direct fields)
   if (tc.result.error) {
     return (
       <div className="rounded-xl border border-[var(--warning)] bg-[var(--warning-light)] p-4 animate-slide-up shadow-sm">
