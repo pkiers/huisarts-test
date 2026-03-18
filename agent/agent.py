@@ -124,9 +124,10 @@ def _send_event(room: rtc.Room, event_type: str, data: dict):
 
     async def _publish():
         try:
-            await room.local_participant.publish_data(payload, reliable=True)
-        except Exception as e:
-            logger.error("Failed to publish data: %s", e)
+            # Data channel for live viewers, fire-and-forget
+            await room.local_participant.publish_data(payload, reliable=False)
+        except Exception:
+            pass
 
     asyncio.ensure_future(_publish())
 
@@ -226,12 +227,8 @@ async def entrypoint(ctx: JobContext):
 
     room.on("participant_disconnected", _on_leave)
 
-    # Send audio: LiveKit → ElevenLabs (buffered to ~100ms chunks)
+    # Send audio: LiveKit → ElevenLabs (immediate, no buffering)
     async def send_audio():
-        CHUNK_SAMPLES = SAMPLE_RATE // 10  # 1600 samples = 100ms at 16kHz
-        CHUNK_BYTES = CHUNK_SAMPLES * 2     # 3200 bytes (16-bit PCM)
-        audio_buffer = bytearray()
-        send_count = 0
         try:
             async for event in audio_stream:
                 if stopped.is_set():
@@ -240,16 +237,8 @@ async def entrypoint(ctx: JobContext):
                 for frame_16k in resampler_down.push(
                     rtc.AudioFrame(data=pcm, sample_rate=LIVEKIT_RATE, num_channels=1, samples_per_channel=len(pcm) // 2)
                 ):
-                    audio_buffer.extend(bytes(frame_16k.data))
-                    while len(audio_buffer) >= CHUNK_BYTES:
-                        chunk = bytes(audio_buffer[:CHUNK_BYTES])
-                        del audio_buffer[:CHUNK_BYTES]
-                        # Pre-encode message to minimize await time
-                        msg = json.dumps({"user_audio_chunk": base64.b64encode(chunk).decode()})
-                        await ws.send(msg)
-                        send_count += 1
-                        if send_count == 1:
-                            logger.info("First audio chunk sent to ElevenLabs (%d bytes)", len(chunk))
+                    resampled = bytes(frame_16k.data)
+                    await ws.send(json.dumps({"user_audio_chunk": base64.b64encode(resampled).decode()}))
         except Exception as e:
             logger.error("send_audio error: %s", e)
             stopped.set()
