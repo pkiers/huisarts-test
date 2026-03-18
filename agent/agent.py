@@ -157,6 +157,18 @@ async def entrypoint(ctx: JobContext):
         "timestamp": datetime.now().isoformat(),
     })
 
+    # When a viewer joins late, replay all past events
+    def _on_viewer_join(p: rtc.RemoteParticipant):
+        if p.identity.startswith("viewer-") and _event_history:
+            async def _replay():
+                for event in _event_history:
+                    payload = json.dumps(event).encode()
+                    await room.local_participant.publish_data(payload, reliable=True)
+                logger.info("Replayed %d events to viewer %s", len(_event_history), p.identity)
+            asyncio.ensure_future(_replay())
+
+    room.on("participant_connected", _on_viewer_join)
+
     # LiveKit audio I/O
     audio_stream = rtc.AudioStream.from_participant(
         participant=participant,

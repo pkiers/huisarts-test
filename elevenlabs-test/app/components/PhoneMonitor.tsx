@@ -31,6 +31,7 @@ export default function PhoneMonitor({ onTranscript, onToolCall, onEnd }: PhoneM
         room.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
           try {
             const event = JSON.parse(new TextDecoder().decode(payload));
+            console.log("LiveKit data received:", event);
             if (event.type === "transcript") {
               onTranscript({
                 id: crypto.randomUUID(),
@@ -55,6 +56,7 @@ export default function PhoneMonitor({ onTranscript, onToolCall, onEnd }: PhoneM
         room.on(RoomEvent.Disconnected, () => setStatus("disconnected"));
 
         await room.connect(url, token);
+        console.log("Connected to LiveKit room:", roomName, "participants:", room.remoteParticipants.size);
         setStatus("connected");
       } catch (err) {
         console.error("Failed to connect to LiveKit room:", err);
@@ -66,9 +68,11 @@ export default function PhoneMonitor({ onTranscript, onToolCall, onEnd }: PhoneM
       try {
         const res = await fetch("/api/livekit-rooms");
         const data = await res.json();
-        if (data.rooms?.length > 0) {
+        const activeRooms = (data.rooms || []).filter((r: { numParticipants: number }) => r.numParticipants > 0);
+        console.log("Active rooms:", activeRooms);
+        if (activeRooms.length > 0 && !roomRef.current) {
           if (pollRef.current) clearInterval(pollRef.current);
-          await connectToRoom(data.rooms[0].name);
+          await connectToRoom(activeRooms[activeRooms.length - 1].name);
         }
       } catch { /* ignore */ }
     };
