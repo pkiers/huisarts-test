@@ -24,7 +24,7 @@ export default function Home() {
       try {
         const res = await fetch("/api/livekit-rooms");
         const data = await res.json();
-        const rooms = (data.rooms || []).filter((r: { name: string }) => r.name.startsWith("huisarts-_"));
+        const rooms = (data.rooms || []).filter((r: { name: string; numParticipants: number }) => r.name.startsWith("huisarts-_") && r.numParticipants > 0);
         setActiveCall(rooms.length > 0 ? { room: rooms[0].name, participants: rooms[0].numParticipants } : null);
       } catch { setActiveCall(null); }
     };

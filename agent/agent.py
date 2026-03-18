@@ -214,8 +214,11 @@ async def entrypoint(ctx: JobContext):
 
     room.on("participant_disconnected", _on_leave)
 
-    # Send audio: LiveKit → ElevenLabs
+    # Send audio: LiveKit → ElevenLabs (buffered to ~100ms chunks)
     async def send_audio():
+        CHUNK_SAMPLES = SAMPLE_RATE // 10  # 1600 samples = 100ms at 16kHz
+        CHUNK_BYTES = CHUNK_SAMPLES * 2     # 3200 bytes (16-bit PCM)
+        audio_buffer = bytearray()
         try:
             async for event in audio_stream:
                 if stopped.is_set():
@@ -224,8 +227,12 @@ async def entrypoint(ctx: JobContext):
                 for frame_16k in resampler_down.push(
                     rtc.AudioFrame(data=pcm, sample_rate=LIVEKIT_RATE, num_channels=1, samples_per_channel=len(pcm) // 2)
                 ):
-                    resampled = bytes(frame_16k.data)
-                    await ws.send(json.dumps({"user_audio_chunk": base64.b64encode(resampled).decode()}))
+                    audio_buffer.extend(bytes(frame_16k.data))
+                    # Send when we have ~100ms of audio
+                    while len(audio_buffer) >= CHUNK_BYTES:
+                        chunk = bytes(audio_buffer[:CHUNK_BYTES])
+                        del audio_buffer[:CHUNK_BYTES]
+                        await ws.send(json.dumps({"user_audio_chunk": base64.b64encode(chunk).decode()}))
         except Exception as e:
             logger.error("send_audio error: %s", e)
             stopped.set()

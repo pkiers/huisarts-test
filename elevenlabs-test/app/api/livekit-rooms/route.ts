@@ -16,7 +16,7 @@ export async function GET() {
     const rooms = await roomService.listRooms();
 
     const huisartsRooms = rooms
-      .filter((r) => r.name.startsWith("huisarts-_"))
+      .filter((r) => r.name.startsWith("huisarts-_") && r.numParticipants > 0)
       .map((r) => ({
         name: r.name,
         numParticipants: r.numParticipants,
