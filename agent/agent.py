@@ -108,15 +108,15 @@ _event_history: list[dict] = []
 def _send_event(room: rtc.Room, event_type: str, data: dict):
     event = {"type": event_type, **data}
     _event_history.append(event)
-    metadata = json.dumps({"events": _event_history[-100:]})
+    payload = json.dumps(event).encode()
 
-    async def _update():
+    async def _publish():
         try:
-            await room.local_participant.set_metadata(metadata)
+            await room.local_participant.publish_data(payload, reliable=True)
         except Exception as e:
-            logger.error("Failed to set metadata: %s", e)
+            logger.error("Failed to publish data: %s", e)
 
-    asyncio.ensure_future(_update())
+    asyncio.ensure_future(_publish())
 
 
 # --- Helpers ---
