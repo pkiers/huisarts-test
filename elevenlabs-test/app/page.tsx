@@ -4,11 +4,12 @@ import { useState, useCallback, useEffect } from "react";
 import VoiceCall from "./components/VoiceCall";
 import PhoneMonitor from "./components/PhoneMonitor";
 import ConfigPanel from "./components/ConfigPanel";
+import DataPanel from "./components/DataPanel";
 import Transcript, { TranscriptMessage } from "./components/Transcript";
 import ToolCards, { ToolCallEvent } from "./components/ToolCards";
 
 type Mode = "idle" | "web-call" | "phone-monitor";
-type Tab = "call" | "config";
+type Tab = "call" | "config" | "data";
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("idle");
@@ -88,6 +89,14 @@ export default function Home() {
             >
               Configuratie
             </button>
+            <button
+              onClick={() => setTab("data")}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                tab === "data" ? "bg-white text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"
+              }`}
+            >
+              Data
+            </button>
           </div>
         </div>
       </header>
@@ -95,6 +104,8 @@ export default function Home() {
       <main className="mx-auto max-w-6xl px-6 py-8">
         {tab === "config" ? (
           <ConfigPanel />
+        ) : tab === "data" ? (
+          <DataPanel />
         ) : mode === "idle" ? (
           <div className="flex flex-col items-center gap-8 pt-12">
             <div className="text-center max-w-lg">

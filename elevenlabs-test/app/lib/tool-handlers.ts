@@ -1,45 +1,9 @@
 /**
  * Server-side tool handlers for ElevenLabs webhook tool calls.
- * Shared fake demo data — same as client-side tools but without UI callbacks.
+ * Reads from the shared data store (editable via UI).
  */
 
-const PATIENTS: Record<string, Record<string, unknown>> = {
-  kiers: {
-    name: "Peter Kiers",
-    dob: "21-02-1983",
-    huisarts: "Dr. Van der Berg",
-    allergies: ["Penicilline"],
-    medications: ["Omeprazol 20mg", "Metformine 500mg"],
-  },
-  jansen: {
-    name: "Maria Jansen",
-    dob: "15-03-1985",
-    huisarts: "Dr. Van der Berg",
-    allergies: [],
-    medications: ["Lisinopril 10mg"],
-  },
-  "de vries": {
-    name: "Pieter de Vries",
-    dob: "22-08-1972",
-    huisarts: "Dr. Bakker",
-    allergies: [],
-    medications: ["Metformine 500mg"],
-  },
-  dijkstra: {
-    name: "Siebrand Dijkstra",
-    dob: "15-05-1968",
-    huisarts: "Dr. Van der Berg",
-    allergies: [],
-    medications: ["Atorvastatine 40mg"],
-  },
-};
-
-const SLOTS = [
-  { date: "2026-03-19", time: "09:00", doctor: "Dr. Van der Berg" },
-  { date: "2026-03-19", time: "10:30", doctor: "Dr. Bakker" },
-  { date: "2026-03-19", time: "14:00", doctor: "Dr. Van der Berg" },
-  { date: "2026-03-20", time: "08:30", doctor: "Dr. Bakker" },
-];
+import { findPatient, getAvailableSlots, getPatients } from "./data-store";
 
 export function handleToolCall(
   toolName: string,
@@ -47,7 +11,9 @@ export function handleToolCall(
 ): Record<string, unknown> {
   switch (toolName) {
     case "check_availability": {
-      return { slots: SLOTS };
+      const doctor = params.doctor as string | undefined;
+      const slots = getAvailableSlots(doctor);
+      return { slots: slots.map((s) => ({ date: s.date, time: s.time, doctor: s.doctor })) };
     }
 
     case "book_appointment": {
@@ -62,11 +28,22 @@ export function handleToolCall(
     }
 
     case "get_patient_info": {
-      const name = String(params.name || "").toLowerCase();
-      const patient =
-        Object.entries(PATIENTS).find(([key]) => name.includes(key))?.[1] ||
-        PATIENTS["kiers"];
-      return patient;
+      const name = String(params.name || "");
+      const patient = findPatient(name);
+      if (patient) {
+        return {
+          name: patient.name,
+          dob: patient.dob,
+          huisarts: patient.huisarts,
+          allergies: patient.allergies,
+          medications: patient.medications,
+        };
+      }
+      // Fallback to first patient
+      const fallback = getPatients()[0];
+      return fallback
+        ? { name: fallback.name, dob: fallback.dob, huisarts: fallback.huisarts, allergies: fallback.allergies, medications: fallback.medications }
+        : { error: "Niet gevonden" };
     }
 
     case "escalate_urgent": {
