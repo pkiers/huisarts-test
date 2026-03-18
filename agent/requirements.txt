@@ -2,4 +2,3 @@ livekit-agents>=1.4
 websockets
 httpx
 python-dotenv
-google-genai
