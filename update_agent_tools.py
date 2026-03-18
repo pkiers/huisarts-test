@@ -151,7 +151,7 @@ Geef zelfzorgadvies, geen afspraak nodig
 
 TOOLS = [
     {
-        "type": "webhook",
+        "type": "client",
         "name": "check_availability",
         "description": "Bekijk beschikbare tijdslots voor afspraken bij de huisarts. Gebruik dit wanneer een patiënt een afspraak wil maken.",
         "parameters": {
@@ -175,7 +175,7 @@ TOOLS = [
         }
     },
     {
-        "type": "webhook",
+        "type": "client",
         "name": "book_appointment",
         "description": "Boek een afspraak voor de patiënt. Gebruik dit nadat je beschikbaarheid hebt gecheckt en de patiënt een tijdslot heeft gekozen.",
         "parameters": {
@@ -206,7 +206,7 @@ TOOLS = [
         }
     },
     {
-        "type": "webhook",
+        "type": "client",
         "name": "get_patient_info",
         "description": "Zoek patiëntgegevens op in het systeem. Gebruik dit om de identiteit van de beller te verifiëren.",
         "parameters": {
@@ -225,7 +225,7 @@ TOOLS = [
         }
     },
     {
-        "type": "webhook",
+        "type": "client",
         "name": "escalate_urgent",
         "description": "Escaleer een spoedgeval naar de dienstdoende arts. Gebruik dit bij SPOED situaties zoals pijn op de borst, ademnood, of bewusteloosheid.",
         "parameters": {
@@ -253,7 +253,7 @@ TOOLS = [
         }
     },
     {
-        "type": "webhook",
+        "type": "client",
         "name": "request_repeat_prescription",
         "description": "Vraag een herhaalrecept aan voor een patiënt. Gebruik dit wanneer een patiënt medicijnen wil laten bijschrijven.",
         "parameters": {
@@ -280,7 +280,7 @@ TOOLS = [
         }
     },
     {
-        "type": "webhook",
+        "type": "client",
         "name": "schedule_callback",
         "description": "Plan een terugbelverzoek in. Gebruik dit wanneer de patiënt teruggebeld wil worden.",
         "parameters": {
@@ -307,7 +307,7 @@ TOOLS = [
         }
     },
     {
-        "type": "webhook",
+        "type": "client",
         "name": "leave_message",
         "description": "Laat een bericht achter voor de praktijk. Gebruik dit wanneer de patiënt een boodschap wil achterlaten.",
         "parameters": {
@@ -335,25 +335,7 @@ TOOLS = [
     }
 ]
 
-# Convert tools to webhook format with api_schema
-for tool in TOOLS:
-    tool_url = f"{WEBHOOK_BASE_URL}/{tool['name']}"
-    tool["url"] = tool_url
-    # ElevenLabs webhook tools require api_schema describing the request/response
-    tool["api_schema"] = {
-        "url": tool_url,
-        "method": "POST",
-        "request_body_schema": {
-            "type": "object",
-            "properties": tool["parameters"]["properties"],
-            "required": tool["parameters"].get("required", []),
-        },
-    }
-    # Remove old parameters key (now in api_schema)
-    del tool["parameters"]
-
 print(f"Updating agent {AGENT_ID}...")
-print(f"Webhook base URL: {WEBHOOK_BASE_URL}")
 
 # Update the agent with tools and new system prompt
 response = elevenlabs.conversational_ai.agents.update(

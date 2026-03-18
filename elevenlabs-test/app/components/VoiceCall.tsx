@@ -16,15 +16,33 @@ export default function VoiceCall({ onTranscript, onToolCall, onEnd }: VoiceCall
   const [isMuted, setIsMuted] = useState(false);
   const clientToolsRef = useRef(createClientTools(onToolCall));
 
+  const callStart = useRef(0);
+
   const conversation = useConversation({
-    onDisconnect: () => onEnd(),
+    onConnect: () => {
+      console.log(`[${new Date().toISOString()}] [ElevenLabs] Connected (${Date.now() - callStart.current}ms since start)`);
+    },
+    onDisconnect: (details) => {
+      console.log("[ElevenLabs] Disconnected:", details);
+      onEnd();
+    },
     onMessage: (message) => {
+      console.log(`[${new Date().toISOString()}] [ElevenLabs] Message: role=${message.role} len=${message.message.length} "${message.message.slice(0, 80)}"`);
       onTranscript({
         id: crypto.randomUUID(),
         role: message.role === "user" ? "user" : "agent",
         text: message.message,
         timestamp: new Date().toISOString(),
       });
+    },
+    onModeChange: (mode) => {
+      console.log(`[${new Date().toISOString()}] [ElevenLabs] Mode: ${mode.mode}`);
+    },
+    onStatusChange: (status) => {
+      console.log(`[${new Date().toISOString()}] [ElevenLabs] Status: ${status.status}`);
+    },
+    onError: (message, context) => {
+      console.error(`[${new Date().toISOString()}] [ElevenLabs] Error: ${message}`, context);
     },
   });
 
@@ -34,15 +52,23 @@ export default function VoiceCall({ onTranscript, onToolCall, onEnd }: VoiceCall
 
   useEffect(() => {
     const startCall = async () => {
+      callStart.current = Date.now();
       try {
+        console.log("[ElevenLabs] Fetching signed URL...");
+        const t0 = Date.now();
         const res = await fetch("/api/signed-url");
         const { signedUrl } = await res.json();
+        console.log(`[${new Date().toISOString()}] [ElevenLabs] Got signed URL (${Date.now() - t0}ms)`);
+
+        console.log("[ElevenLabs] Starting session...");
+        const t1 = Date.now();
         await conversation.startSession({
           signedUrl,
           clientTools: clientToolsRef.current,
         });
+        console.log(`[${new Date().toISOString()}] [ElevenLabs] Session started (${Date.now() - t1}ms)`);
       } catch (err) {
-        console.error("Failed to start call:", err);
+        console.error("[ElevenLabs] Failed to start call:", err);
       }
     };
     startCall();
