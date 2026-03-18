@@ -349,7 +349,7 @@ response = elevenlabs.conversational_ai.agents.update(
             "speed": 1.15,
         },
         "agent": {
-            "first_message": "Goedemorgen, u spreekt met Lisa van Huisartspraktijk De Gezondheid. Waarmee kan ik u helpen?",
+            "first_message": "[excited] Goedemorgen, u spreekt met Lisa van Huisartspraktijk De Gezondheid. Waarmee kan ik u helpen?",
             "prompt": {
                 "prompt": SYSTEM_PROMPT,
                 "tools": TOOLS,
