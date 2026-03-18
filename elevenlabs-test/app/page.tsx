@@ -69,17 +69,20 @@ export default function Home() {
     <div className="min-h-screen bg-[var(--background)]">
       <header className="border-b border-[var(--card-border)] bg-white">
         <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-white font-bold text-lg">
-            H
-          </div>
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold text-[var(--foreground)]">
-              Huisartspraktijk De Gezondheid
-            </h1>
-            <p className="text-sm text-[var(--text-muted)]">
-              AI Telefoonassistent — Demo
-            </p>
-          </div>
+          <button onClick={() => { setTab("call"); setMode("idle"); }} className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-white font-bold text-lg">
+              H
+            </div>
+            <div className="text-left">
+              <h1 className="text-xl font-semibold text-[var(--foreground)]">
+                Huisartspraktijk De Gezondheid
+              </h1>
+              <p className="text-sm text-[var(--text-muted)]">
+                AI Telefoonassistent — Demo
+              </p>
+            </div>
+          </button>
+          <div className="flex-1" />
           <div className="flex items-center gap-1 rounded-full bg-gray-100 p-1">
             <button
               onClick={() => setTab("call")}
