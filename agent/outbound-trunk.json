@@ -1,0 +1,9 @@
+{
+  "trunk": {
+    "name": "Voys Outbound - Huisarts",
+    "address": "ha.voys.nl",
+    "numbers": ["+31582038458"],
+    "auth_username": "976000005",
+    "auth_password": ""
+  }
+}

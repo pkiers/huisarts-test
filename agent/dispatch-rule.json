@@ -1,0 +1,10 @@
+{
+  "dispatchRule": {
+    "trunkIds": ["ST_7w58SV5fqrSW"],
+    "rule": {
+      "dispatchRuleIndividual": {
+        "roomPrefix": "huisarts-"
+      }
+    }
+  }
+}

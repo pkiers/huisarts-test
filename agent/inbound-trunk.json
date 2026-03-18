@@ -1,0 +1,13 @@
+{
+  "trunk": {
+    "name": "Voys Inbound - Huisarts",
+    "numbers": ["+31582038458"],
+    "allowed_addresses": [
+      "195.35.114.0/24",
+      "195.35.115.0/24",
+      "185.103.76.0/22"
+    ],
+    "auth_username": "976000005",
+    "auth_password": "mPSgQxCsKnwZWdY"
+  }
+}

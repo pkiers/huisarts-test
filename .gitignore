@@ -1,0 +1,8 @@
+.env
+.env.*
+__pycache__/
+*.pyc
+.venv/
+gcp-key.json
+infra/gcp-key.json
+elevenlabs-test/gcp-key.json

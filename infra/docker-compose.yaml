@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    network_mode: host
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/livekit-server:latest
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml
+    command: --config /etc/livekit.yaml
+
+  sip:
+    image: livekit/sip:latest
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./sip.yaml:/etc/sip.yaml
+    command: --config /etc/sip.yaml
+    depends_on:
+      - livekit
+
+  agent:
+    build: ../agent
+    network_mode: host
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
+    volumes:
+      - ./gcp-key.json:/secrets/gcp-key.json:ro
+    depends_on:
+      - livekit
