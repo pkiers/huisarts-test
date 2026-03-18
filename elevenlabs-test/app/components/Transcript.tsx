@@ -58,7 +58,7 @@ export default function Transcript({ messages }: TranscriptProps) {
               <p className={`text-[10px] mt-1 ${
                 msg.role === "user" ? "text-green-200" : "text-[var(--text-muted)]"
               }`}>
-                {new Date(msg.timestamp).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                {new Date(msg.timestamp).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
           </div>
