@@ -6,3 +6,5 @@ __pycache__/
 gcp-key.json
 infra/gcp-key.json
 elevenlabs-test/gcp-key.json
+.vercel
+.env*.local

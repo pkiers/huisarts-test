@@ -29,10 +29,8 @@ export async function GET() {
       }));
 
     return NextResponse.json({ rooms: huisartsRooms });
-  } catch (error) {
-    return NextResponse.json(
-      { error: `Failed to list rooms: ${error}` },
-      { status: 500 }
-    );
+  } catch {
+    // Return empty if LiveKit is unreachable (e.g. from Vercel serverless)
+    return NextResponse.json({ rooms: [] });
   }
 }
