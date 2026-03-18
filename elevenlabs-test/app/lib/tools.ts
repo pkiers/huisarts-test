@@ -38,29 +38,25 @@ export function createClientTools(
 
     get_patient_info: async (params) => {
       const name = String(params.name || "").toLowerCase();
-      const dob = String(params.date_of_birth || "").replace(/\s+/g, "").toLowerCase();
+      const dob = String(params.date_of_birth || "");
 
-      // Match on full name or last name, then verify DOB if provided
+      // Find candidates by last name
       const candidates = Object.values(PATIENTS).filter((p) => {
-        const pName = (p.name as string).toLowerCase();
         const pLast = (p.name as string).split(" ").pop()!.toLowerCase();
-        return pName.includes(name) || name.includes(pLast) || name.includes(pName);
+        return name.includes(pLast) || pLast.includes(name.split(" ").pop()!.toLowerCase());
       });
 
-      let patient = candidates[0];
-      if (dob && candidates.length > 0) {
-        patient = candidates.find((p) => {
-          const pDob = (p.dob as string).replace(/\s+/g, "").toLowerCase();
-          return pDob === dob || dob.includes(pDob) || pDob.includes(dob);
+      if (candidates.length > 0) {
+        return emit("get_patient_info", params, {
+          zoekterm: { naam: params.name, geboortedatum: dob },
+          kandidaten: candidates,
+          instructie: "Vergelijk de opgegeven naam en geboortedatum met de kandidaten. Accepteer alleen als achternaam EN geboortedatum overeenkomen. Als het niet klopt, vraag de beller om het te spellen of corrigeren.",
         });
       }
-
-      if (patient) {
-        return emit("get_patient_info", params, { found: true, ...patient });
-      }
       return emit("get_patient_info", params, {
-        found: false,
-        error: "Patiënt niet gevonden. Controleer de voornaam, achternaam en geboortedatum nogmaals. De patiënt moet ingeschreven staan bij de praktijk.",
+        zoekterm: { naam: params.name, geboortedatum: dob },
+        kandidaten: [],
+        instructie: "Geen patiënt gevonden met deze achternaam. De patiënt moet ingeschreven staan bij de praktijk. Vraag om de naam te spellen.",
       });
     },
 

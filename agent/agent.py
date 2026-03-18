@@ -76,23 +76,21 @@ def handle_tool_call(tool_name: str, args: dict) -> dict:
     elif tool_name == "get_patient_info":
         name = args.get("name", "").lower().strip()
         dob = args.get("date_of_birth", "").strip()
-        # Find candidates by name
+        search_last = name.split()[-1] if name else ""
+        # Find candidates by last name similarity
         candidates = []
-        for key, p in FAKE_PATIENTS.items():
-            p_name = p["name"].lower()
+        for p in FAKE_PATIENTS.values():
             p_last = p["name"].split()[-1].lower()
-            if key in name or p_name in name or name in p_name or p_last in name or name in p_last:
-                candidates.append(p)
-        # Verify DOB if provided
-        if dob and candidates:
-            dob_clean = dob.replace(" ", "").lower()
-            verified = [p for p in candidates if dob_clean in p["dob"].replace(" ", "").lower() or p["dob"].replace(" ", "").lower() in dob_clean]
-            if verified:
-                return {**verified[0], "found": True}
-            return {"found": False, "error": "Geboortedatum komt niet overeen. Controleer de gegevens nogmaals."}
+            if search_last in p_last or p_last in search_last:
+                candidates.append({"name": p["name"], "dob": p["dob"], "huisarts": p["huisarts"],
+                                   "allergies": p["allergies"], "medications": p["medications"]})
         if candidates:
-            return {**candidates[0], "found": True}
-        return {"found": False, "error": "Patiënt niet gevonden. Controleer de voornaam, achternaam en geboortedatum nogmaals. De patiënt moet ingeschreven staan bij de praktijk."}
+            return {"zoekterm": {"naam": args.get("name", ""), "geboortedatum": dob},
+                    "kandidaten": candidates,
+                    "instructie": "Vergelijk de opgegeven naam en geboortedatum met de kandidaten. Accepteer alleen als achternaam EN geboortedatum overeenkomen. Als het niet klopt, vraag de beller om het te spellen of corrigeren."}
+        return {"zoekterm": {"naam": args.get("name", ""), "geboortedatum": dob},
+                "kandidaten": [],
+                "instructie": "Geen patiënt gevonden met deze achternaam. De patiënt moet ingeschreven staan bij de praktijk. Vraag om de naam te spellen."}
     elif tool_name == "escalate_urgent":
         return {"escalated": True, "reason": args.get("reason", ""),
                 "urgency": args.get("urgency_level", "high"),

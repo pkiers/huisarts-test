@@ -28,22 +28,30 @@ export function handleToolCall(
     }
 
     case "get_patient_info": {
-      const name = String(params.name || "");
-      const dob = params.date_of_birth ? String(params.date_of_birth) : undefined;
-      const patient = findPatient(name, dob);
-      if (patient) {
+      const name = String(params.name || "").toLowerCase().trim();
+      const dob = String(params.date_of_birth || "").trim();
+      const all = getPatients();
+
+      // Return all patients with a match hint — let the LLM decide
+      const candidates = all.filter((p) => {
+        const pLast = p.name.split(" ").pop()!.toLowerCase();
+        return name.includes(pLast) || pLast.includes(name.split(" ").pop()!.toLowerCase());
+      });
+
+      if (candidates.length > 0) {
         return {
-          found: true,
-          name: patient.name,
-          dob: patient.dob,
-          huisarts: patient.huisarts,
-          allergies: patient.allergies,
-          medications: patient.medications,
+          zoekterm: { naam: params.name, geboortedatum: dob },
+          kandidaten: candidates.map((p) => ({
+            name: p.name, dob: p.dob, huisarts: p.huisarts,
+            allergies: p.allergies, medications: p.medications,
+          })),
+          instructie: "Vergelijk de opgegeven naam en geboortedatum met de kandidaten. Accepteer alleen als achternaam EN geboortedatum overeenkomen. Als het niet klopt, vraag de beller om het te spellen of corrigeren.",
         };
       }
       return {
-        found: false,
-        error: "Patiënt niet gevonden. Controleer de voornaam, achternaam en geboortedatum nogmaals. De patiënt moet ingeschreven staan bij de praktijk.",
+        zoekterm: { naam: params.name, geboortedatum: dob },
+        kandidaten: [],
+        instructie: "Geen patiënt gevonden met deze achternaam. De patiënt moet ingeschreven staan bij de praktijk. Vraag om de naam te spellen.",
       };
     }
 
