@@ -61,6 +61,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ provider, ok: true });
   } catch {
     // If LiveKit is unreachable, still acknowledge the request
-    return NextResponse.json({ provider, ok: true });
+    return NextResponse.json({ ok: true });
   }
 }
