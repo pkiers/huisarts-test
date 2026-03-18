@@ -32,6 +32,7 @@ export function handleToolCall(
       const patient = findPatient(name);
       if (patient) {
         return {
+          found: true,
           name: patient.name,
           dob: patient.dob,
           huisarts: patient.huisarts,
@@ -39,11 +40,10 @@ export function handleToolCall(
           medications: patient.medications,
         };
       }
-      // Fallback to first patient
-      const fallback = getPatients()[0];
-      return fallback
-        ? { name: fallback.name, dob: fallback.dob, huisarts: fallback.huisarts, allergies: fallback.allergies, medications: fallback.medications }
-        : { error: "Niet gevonden" };
+      return {
+        found: false,
+        error: "Patiënt niet gevonden. Controleer de voornaam, achternaam en geboortedatum nogmaals. De patiënt moet ingeschreven staan bij de praktijk.",
+      };
     }
 
     case "escalate_urgent": {

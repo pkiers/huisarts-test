@@ -38,8 +38,14 @@ export function createClientTools(
 
     get_patient_info: async (params) => {
       const name = String(params.name || "").toLowerCase();
-      const patient = Object.entries(PATIENTS).find(([key]) => name.includes(key))?.[1] || PATIENTS["kiers"];
-      return emit("get_patient_info", params, patient);
+      const patient = Object.entries(PATIENTS).find(([key]) => name.includes(key))?.[1];
+      if (patient) {
+        return emit("get_patient_info", params, { found: true, ...patient });
+      }
+      return emit("get_patient_info", params, {
+        found: false,
+        error: "Patiënt niet gevonden. Controleer de voornaam, achternaam en geboortedatum nogmaals. De patiënt moet ingeschreven staan bij de praktijk.",
+      });
     },
 
     escalate_urgent: async (params) => emit("escalate_urgent", params, {

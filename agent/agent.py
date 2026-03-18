@@ -77,8 +77,8 @@ def handle_tool_call(tool_name: str, args: dict) -> dict:
         name = args.get("name", "").lower()
         for key, p in FAKE_PATIENTS.items():
             if key in name or name in p["name"].lower():
-                return p
-        return FAKE_PATIENTS["kiers"]
+                return {**p, "found": True}
+        return {"found": False, "error": "Patiënt niet gevonden. Controleer de voornaam, achternaam en geboortedatum nogmaals. De patiënt moet ingeschreven staan bij de praktijk."}
     elif tool_name == "escalate_urgent":
         return {"escalated": True, "reason": args.get("reason", ""),
                 "urgency": args.get("urgency_level", "high"),
