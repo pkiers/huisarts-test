@@ -64,6 +64,13 @@ export function createClientTools(
           allergies: [],
           medications: ["Metformine 500mg"],
         },
+        dijkstra: {
+          name: "Siebrand Dijkstra",
+          dob: "15-05-1968",
+          huisarts: "Dr. Van der Berg",
+          allergies: [],
+          medications: ["Atorvastatine 40mg"],
+        },
       };
       const name = String(params.name || "").toLowerCase();
       const patient =

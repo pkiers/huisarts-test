@@ -148,6 +148,14 @@ FAKE_PATIENTS = {
         "allergies": [],
         "medications": ["Metformine 500mg"],
     },
+    "dijkstra": {
+        "name": "Siebrand Dijkstra",
+        "dob": "15-05-1968",
+        "bsn": "789123456",
+        "huisarts": "Dr. Van der Berg",
+        "allergies": [],
+        "medications": ["Atorvastatine 40mg"],
+    },
 }
 DEFAULT_PATIENT = "kiers"  # fallback if no match
 
