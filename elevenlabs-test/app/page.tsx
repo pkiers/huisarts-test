@@ -34,11 +34,19 @@ export default function Home() {
   }, []);
 
   const handleTranscript = useCallback((msg: TranscriptMessage) => {
-    setMessages((prev) => [...prev, msg]);
+    setMessages((prev) => {
+      const next = [...prev, msg];
+      next.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      return next;
+    });
   }, []);
 
   const handleToolCall = useCallback((tc: ToolCallEvent) => {
-    setToolCalls((prev) => [...prev, tc]);
+    setToolCalls((prev) => {
+      const next = [...prev, tc];
+      next.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      return next;
+    });
   }, []);
 
   const handleEnd = useCallback(() => {

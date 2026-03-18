@@ -27,11 +27,17 @@ export default function PhoneMonitor({ onTranscript, onToolCall, onEnd }: PhoneM
 
         const room = new Room();
         roomRef.current = room;
+        const seenKeys = new Set<string>();
 
         room.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
           try {
             const event = JSON.parse(new TextDecoder().decode(payload));
-            console.log("LiveKit data received:", event);
+
+            // Deduplicate by timestamp + content
+            const dedup = `${event.type}:${event.timestamp}:${event.text || event.tool || ""}`;
+            if (seenKeys.has(dedup)) return;
+            seenKeys.add(dedup);
+
             if (event.type === "transcript") {
               onTranscript({
                 id: crypto.randomUUID(),
@@ -45,7 +51,7 @@ export default function PhoneMonitor({ onTranscript, onToolCall, onEnd }: PhoneM
                 tool: event.tool,
                 args: event.args,
                 result: event.result,
-                timestamp: new Date().toISOString(),
+                timestamp: event.timestamp || new Date().toISOString(),
               });
             } else if (event.type === "call_ended") {
               setStatus("disconnected");
