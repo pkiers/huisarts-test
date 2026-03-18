@@ -3,17 +3,13 @@
 import { useState, useCallback, useEffect } from "react";
 import VoiceCall from "./components/VoiceCall";
 import PhoneMonitor from "./components/PhoneMonitor";
-import ConfigPanel from "./components/ConfigPanel";
-import DataPanel from "./components/DataPanel";
 import Transcript, { TranscriptMessage } from "./components/Transcript";
 import ToolCards, { ToolCallEvent } from "./components/ToolCards";
 
 type Mode = "idle" | "web-call" | "phone-monitor";
-type Tab = "call" | "config" | "data";
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("idle");
-  const [tab, setTab] = useState<Tab>("call");
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCallEvent[]>([]);
   const [activeCall, setActiveCall] = useState<{ room: string; participants: number } | null>(null);
@@ -66,58 +62,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <header className="border-b border-[var(--card-border)] bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-4">
-          <button onClick={() => { setTab("call"); setMode("idle"); }} className="flex items-center gap-4 hover:opacity-80 transition-opacity">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-white font-bold text-lg">
-              H
-            </div>
-            <div className="text-left">
-              <h1 className="text-xl font-semibold text-[var(--foreground)]">
-                Huisartspraktijk De Gezondheid
-              </h1>
-              <p className="text-sm text-[var(--text-muted)]">
-                AI Telefoonassistent — Demo
-              </p>
-            </div>
-          </button>
-          <div className="flex-1" />
-          <div className="flex items-center gap-1 rounded-full bg-gray-100 p-1">
-            <button
-              onClick={() => setTab("call")}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                tab === "call" ? "bg-white text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"
-              }`}
-            >
-              Bellen
-            </button>
-            <button
-              onClick={() => setTab("config")}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                tab === "config" ? "bg-white text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"
-              }`}
-            >
-              Configuratie
-            </button>
-            <button
-              onClick={() => setTab("data")}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                tab === "data" ? "bg-white text-[var(--primary)] shadow-sm" : "text-[var(--text-muted)]"
-              }`}
-            >
-              Data
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        {tab === "config" ? (
-          <ConfigPanel />
-        ) : tab === "data" ? (
-          <DataPanel />
-        ) : mode === "idle" ? (
+    <main className="mx-auto max-w-6xl px-6 py-8">
+        {mode === "idle" ? (
           <div className="flex flex-col items-center gap-8 pt-12">
             <div className="text-center max-w-lg">
               <h2 className="text-3xl font-bold text-[var(--foreground)] mb-3">
@@ -217,7 +163,6 @@ export default function Home() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </main>
   );
 }

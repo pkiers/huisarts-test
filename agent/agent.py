@@ -219,6 +219,7 @@ async def entrypoint(ctx: JobContext):
         CHUNK_SAMPLES = SAMPLE_RATE // 10  # 1600 samples = 100ms at 16kHz
         CHUNK_BYTES = CHUNK_SAMPLES * 2     # 3200 bytes (16-bit PCM)
         audio_buffer = bytearray()
+        send_count = 0
         try:
             async for event in audio_stream:
                 if stopped.is_set():
@@ -228,17 +229,24 @@ async def entrypoint(ctx: JobContext):
                     rtc.AudioFrame(data=pcm, sample_rate=LIVEKIT_RATE, num_channels=1, samples_per_channel=len(pcm) // 2)
                 ):
                     audio_buffer.extend(bytes(frame_16k.data))
-                    # Send when we have ~100ms of audio
                     while len(audio_buffer) >= CHUNK_BYTES:
                         chunk = bytes(audio_buffer[:CHUNK_BYTES])
                         del audio_buffer[:CHUNK_BYTES]
-                        await ws.send(json.dumps({"user_audio_chunk": base64.b64encode(chunk).decode()}))
+                        # Pre-encode message to minimize await time
+                        msg = json.dumps({"user_audio_chunk": base64.b64encode(chunk).decode()})
+                        await ws.send(msg)
+                        send_count += 1
+                        if send_count == 1:
+                            logger.info("First audio chunk sent to ElevenLabs (%d bytes)", len(chunk))
         except Exception as e:
             logger.error("send_audio error: %s", e)
             stopped.set()
 
     # Receive from ElevenLabs → LiveKit
     async def receive_audio():
+        import time as _time
+        first_audio_received = False
+        last_user_speech_end = 0.0
         try:
             async for raw_msg in ws:
                 if stopped.is_set():
@@ -249,6 +257,11 @@ async def entrypoint(ctx: JobContext):
                 if msg_type == "audio":
                     chunk_b64 = msg.get("audio_event", {}).get("audio_base_64")
                     if chunk_b64:
+                        if not first_audio_received:
+                            first_audio_received = True
+                            if last_user_speech_end > 0:
+                                latency = (_time.time() - last_user_speech_end) * 1000
+                                logger.info("LATENCY: first agent audio %.0fms after user speech end", latency)
                         pcm_data = base64.b64decode(chunk_b64)
                         frame_16k = rtc.AudioFrame(data=pcm_data, sample_rate=SAMPLE_RATE, num_channels=1, samples_per_channel=len(pcm_data) // 2)
                         for frame_24k in resampler_up.push(frame_16k):
@@ -257,6 +270,8 @@ async def entrypoint(ctx: JobContext):
                 elif msg_type == "user_transcript":
                     text = msg.get("user_transcription_event", {}).get("user_transcript", "")
                     if text:
+                        last_user_speech_end = _time.time()
+                        first_audio_received = False
                         logger.info("User: %s", text)
                         _send_event(room, "transcript", {"role": "user", "text": text, "timestamp": datetime.now().isoformat()})
 
