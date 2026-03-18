@@ -38,7 +38,23 @@ export function createClientTools(
 
     get_patient_info: async (params) => {
       const name = String(params.name || "").toLowerCase();
-      const patient = Object.entries(PATIENTS).find(([key]) => name.includes(key))?.[1];
+      const dob = String(params.date_of_birth || "").replace(/\s+/g, "").toLowerCase();
+
+      // Match on full name or last name, then verify DOB if provided
+      const candidates = Object.values(PATIENTS).filter((p) => {
+        const pName = (p.name as string).toLowerCase();
+        const pLast = (p.name as string).split(" ").pop()!.toLowerCase();
+        return pName.includes(name) || name.includes(pLast) || name.includes(pName);
+      });
+
+      let patient = candidates[0];
+      if (dob && candidates.length > 0) {
+        patient = candidates.find((p) => {
+          const pDob = (p.dob as string).replace(/\s+/g, "").toLowerCase();
+          return pDob === dob || dob.includes(pDob) || pDob.includes(dob);
+        });
+      }
+
       if (patient) {
         return emit("get_patient_info", params, { found: true, ...patient });
       }

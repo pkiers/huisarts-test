@@ -74,10 +74,24 @@ def handle_tool_call(tool_name: str, args: dict) -> dict:
             "reference": f"AF-{datetime.now().strftime('%Y%m%d')}-001",
         }
     elif tool_name == "get_patient_info":
-        name = args.get("name", "").lower()
+        name = args.get("name", "").lower().strip()
+        dob = args.get("date_of_birth", "").strip()
+        # Find candidates by name
+        candidates = []
         for key, p in FAKE_PATIENTS.items():
-            if key in name or name in p["name"].lower():
-                return {**p, "found": True}
+            p_name = p["name"].lower()
+            p_last = p["name"].split()[-1].lower()
+            if key in name or p_name in name or name in p_name or p_last in name or name in p_last:
+                candidates.append(p)
+        # Verify DOB if provided
+        if dob and candidates:
+            dob_clean = dob.replace(" ", "").lower()
+            verified = [p for p in candidates if dob_clean in p["dob"].replace(" ", "").lower() or p["dob"].replace(" ", "").lower() in dob_clean]
+            if verified:
+                return {**verified[0], "found": True}
+            return {"found": False, "error": "Geboortedatum komt niet overeen. Controleer de gegevens nogmaals."}
+        if candidates:
+            return {**candidates[0], "found": True}
         return {"found": False, "error": "Patiënt niet gevonden. Controleer de voornaam, achternaam en geboortedatum nogmaals. De patiënt moet ingeschreven staan bij de praktijk."}
     elif tool_name == "escalate_urgent":
         return {"escalated": True, "reason": args.get("reason", ""),

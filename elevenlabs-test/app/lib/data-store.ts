@@ -67,12 +67,31 @@ export function setSlots(data: TimeSlot[]) { slots = data; }
 
 // --- Lookup helpers (used by tool handlers) ---
 
-export function findPatient(name: string): Patient | undefined {
-  const lower = name.toLowerCase();
-  return patients.find((p) =>
-    p.name.toLowerCase().includes(lower) ||
-    lower.includes(p.name.split(" ").pop()!.toLowerCase())
-  );
+export function findPatient(name: string, dob?: string): Patient | undefined {
+  const lower = name.toLowerCase().trim();
+  if (!lower) return undefined;
+
+  // Find candidates matching name (full name or last name)
+  const candidates = patients.filter((p) => {
+    const pName = p.name.toLowerCase();
+    const pLast = p.name.split(" ").pop()!.toLowerCase();
+    return pName.includes(lower) || lower.includes(pLast) || lower.includes(pName);
+  });
+
+  if (candidates.length === 0) return undefined;
+  if (candidates.length === 1 && !dob) return candidates[0];
+
+  // If DOB provided, verify it matches
+  if (dob) {
+    const dobClean = dob.replace(/\s+/g, "").toLowerCase();
+    const exact = candidates.find((p) => {
+      const pDob = p.dob.replace(/\s+/g, "").toLowerCase();
+      return pDob === dobClean || dobClean.includes(pDob) || pDob.includes(dobClean);
+    });
+    return exact; // undefined if DOB doesn't match any candidate
+  }
+
+  return candidates[0];
 }
 
 export function getAvailableSlots(doctor?: string): TimeSlot[] {

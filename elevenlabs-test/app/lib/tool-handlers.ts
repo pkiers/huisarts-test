@@ -29,7 +29,8 @@ export function handleToolCall(
 
     case "get_patient_info": {
       const name = String(params.name || "");
-      const patient = findPatient(name);
+      const dob = params.date_of_birth ? String(params.date_of_birth) : undefined;
+      const patient = findPatient(name, dob);
       if (patient) {
         return {
           found: true,
