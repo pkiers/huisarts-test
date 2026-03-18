@@ -11,9 +11,15 @@ load_dotenv()
 elevenlabs = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
 
 AGENT_ID = os.getenv("AGENT_ID", "agent_7801kkzsqjsqe15svpfegj23b4k8")
+WEBHOOK_BASE_URL = os.getenv("WEBHOOK_BASE_URL", "https://huisarts-test.vercel.app/api/tools")
 
 SYSTEM_PROMPT = """Je bent de telefoonassistent van Huisartspraktijk De Gezondheid. Je naam is Lisa.
 Je helpt patiënten vriendelijk en professioneel via de telefoon.
+
+## Toon en expressie
+- Begin het gesprek altijd [excited] en enthousiast — je vindt het leuk om mensen te helpen!
+- Gebruik expressieve tags: [excited] bij begroeting en goed nieuws
+- Wees warm, energiek en oprecht geïnteresseerd in de beller
 
 ## Kerntaken
 1. **Triage**: Beoordeel de urgentie van klachten
@@ -75,7 +81,7 @@ Je helpt patiënten vriendelijk en professioneel via de telefoon.
 
 TOOLS = [
     {
-        "type": "client",
+        "type": "webhook",
         "name": "check_availability",
         "description": "Bekijk beschikbare tijdslots voor afspraken bij de huisarts. Gebruik dit wanneer een patiënt een afspraak wil maken.",
         "parameters": {
@@ -99,7 +105,7 @@ TOOLS = [
         }
     },
     {
-        "type": "client",
+        "type": "webhook",
         "name": "book_appointment",
         "description": "Boek een afspraak voor de patiënt. Gebruik dit nadat je beschikbaarheid hebt gecheckt en de patiënt een tijdslot heeft gekozen.",
         "parameters": {
@@ -130,7 +136,7 @@ TOOLS = [
         }
     },
     {
-        "type": "client",
+        "type": "webhook",
         "name": "get_patient_info",
         "description": "Zoek patiëntgegevens op in het systeem. Gebruik dit om de identiteit van de beller te verifiëren.",
         "parameters": {
@@ -149,7 +155,7 @@ TOOLS = [
         }
     },
     {
-        "type": "client",
+        "type": "webhook",
         "name": "escalate_urgent",
         "description": "Escaleer een spoedgeval naar de dienstdoende arts. Gebruik dit bij SPOED situaties zoals pijn op de borst, ademnood, of bewusteloosheid.",
         "parameters": {
@@ -177,7 +183,7 @@ TOOLS = [
         }
     },
     {
-        "type": "client",
+        "type": "webhook",
         "name": "request_repeat_prescription",
         "description": "Vraag een herhaalrecept aan voor een patiënt. Gebruik dit wanneer een patiënt medicijnen wil laten bijschrijven.",
         "parameters": {
@@ -204,7 +210,7 @@ TOOLS = [
         }
     },
     {
-        "type": "client",
+        "type": "webhook",
         "name": "schedule_callback",
         "description": "Plan een terugbelverzoek in. Gebruik dit wanneer de patiënt teruggebeld wil worden.",
         "parameters": {
@@ -231,7 +237,7 @@ TOOLS = [
         }
     },
     {
-        "type": "client",
+        "type": "webhook",
         "name": "leave_message",
         "description": "Laat een bericht achter voor de praktijk. Gebruik dit wanneer de patiënt een boodschap wil achterlaten.",
         "parameters": {
@@ -259,7 +265,25 @@ TOOLS = [
     }
 ]
 
+# Convert tools to webhook format with api_schema
+for tool in TOOLS:
+    tool_url = f"{WEBHOOK_BASE_URL}/{tool['name']}"
+    tool["url"] = tool_url
+    # ElevenLabs webhook tools require api_schema describing the request/response
+    tool["api_schema"] = {
+        "url": tool_url,
+        "method": "POST",
+        "request_body_schema": {
+            "type": "object",
+            "properties": tool["parameters"]["properties"],
+            "required": tool["parameters"].get("required", []),
+        },
+    }
+    # Remove old parameters key (now in api_schema)
+    del tool["parameters"]
+
 print(f"Updating agent {AGENT_ID}...")
+print(f"Webhook base URL: {WEBHOOK_BASE_URL}")
 
 # Update the agent with tools and new system prompt
 response = elevenlabs.conversational_ai.agents.update(
